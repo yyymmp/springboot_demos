@@ -11,6 +11,7 @@
     <modules>
         <module>powerdownloader</module>
         <module>test</module>
+        <module>rocketmq</module>
     </modules>
 
     <build>
