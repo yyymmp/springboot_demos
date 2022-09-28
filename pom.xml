@@ -12,6 +12,7 @@
         <module>powerdownloader</module>
         <module>test</module>
         <module>rocketmq</module>
+        <module>netty_jt808</module>
     </modules>
 
     <build>
