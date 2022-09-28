@@ -23,7 +23,7 @@ public class EsOPtionTest extends DemoApplicationTests {
     }
 
     /**
-     * 索引或一条文档
+     * 索引或更新一条文档
      */
     @Test
     public void testIndex() {
