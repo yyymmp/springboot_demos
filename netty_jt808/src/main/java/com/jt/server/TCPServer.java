@@ -1,6 +1,7 @@
 package com.jt.server;
 
 import com.jt.server.codec.JT808Decoder;
+import com.jt.server.handler.TcpHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
@@ -36,12 +37,14 @@ public class TCPServer {
                     public void initChannel(SocketChannel ch) throws Exception {
                         ch.pipeline().addLast("idleStateHandler",
                                 new IdleStateHandler(15, 0, 0, TimeUnit.MINUTES));
+                        //日志框架
                         ch.pipeline().addLast(new LoggingHandler());
                         // 1024表示单条消息的最大长度，解码器在查找分隔符的时候，达到该长度还没找到的话会抛异常
                         ch.pipeline().addLast(
                                 new DelimiterBasedFrameDecoder(1024, Unpooled.copiedBuffer(new byte[] { 0x7e }),
                                         Unpooled.copiedBuffer(new byte[] { 0x7e, 0x7e })));
-                         ch.pipeline().addLast(new JT808Decoder());
+
+                         ch.pipeline().addLast(new TcpHandler());
                         // ch.pipeline().addLast(new PackageDataDecoder());
                         //ch.pipeline().addLast(new TCPServerHandler());
                     }
