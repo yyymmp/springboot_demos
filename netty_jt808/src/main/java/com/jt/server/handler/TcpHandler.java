@@ -1,14 +1,15 @@
 package com.jt.server.handler;
 
 import com.jt.server.codec.JT808Decoder;
+import com.jt.server.consts.JT808Const;
 import com.jt.server.message.MsgHeader;
 import com.jt.server.message.PackageData;
-import com.sun.deploy.util.ArrayUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
+import java.io.UnsupportedEncodingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,8 +23,9 @@ public class TcpHandler extends ChannelInboundHandlerAdapter {
         byte cs = 0;
         int readerIndex = byteBuf.readerIndex();
         int writerIndex = byteBuf.writerIndex() + tailOffset;
-        while (readerIndex < writerIndex)
+        while (readerIndex < writerIndex) {
             cs ^= byteBuf.getByte(readerIndex++);
+        }
         return cs;
     }
 
@@ -37,6 +39,7 @@ public class TcpHandler extends ChannelInboundHandlerAdapter {
                 // ReferenceCountUtil.safeRelease(msg);
                 return;
             }
+            PackageData packageData = new PackageData();
             //验证校验码
             byte checkCode = bcc(buf, -1);
             byte exist = buf.getByte(buf.writerIndex() - 1);
@@ -76,22 +79,35 @@ public class TcpHandler extends ChannelInboundHandlerAdapter {
             // [14-] 0100,0000,0000,0000(C000)(14保留位  版本标识)
             int version = (prop & 0x4000) >> 14;
             msgHeader.setVersion(version);
+            String tel;
             if (version == 0) {
                 logger.info("2013版本");
+                //读取手机号 六位
+                int num_part1 = escape.readUnsignedShort();
+                int num_part2 = escape.readUnsignedShort();
+                int num_part3 = escape.readUnsignedShort();
+                //将三部分转成hex拼接即可得到手机号
+                tel = Integer.toHexString(num_part1) + Integer.toHexString(num_part2) + Integer.toHexString(num_part3);
+                logger.info("手机号：{}", tel);
             } else {
                 logger.info("2019版本");
+                //协议版本号
+                byte b = escape.readByte();
+                System.out.println("协议版本号: "+b);
+                //读取手机号 [5-15)
+                int num_part1 = escape.readUnsignedShort();
+                int num_part2 = escape.readUnsignedShort();
+                int num_part3 = escape.readUnsignedShort();
+                int num_part4 = escape.readUnsignedShort();
+                int num_part5 = escape.readUnsignedShort();
+                tel = Integer.toHexString(num_part1) + Integer.toHexString(num_part2) + Integer.toHexString(num_part3) + Integer.toHexString(num_part4) +Integer.toHexString(num_part5);
+                logger.info("手机号：{}", tel);
             }
-            //读取手机号 六位
-            int num_part1 = escape.readUnsignedShort();
-            int num_part2 = escape.readUnsignedShort();
-            int num_part3 = escape.readUnsignedShort();
-            //将三部分转成hex拼接即可得到手机号
-            String tel = Integer.toHexString(num_part1) + Integer.toHexString(num_part2) + Integer.toHexString(num_part3);
-            logger.info("手机号：{}", tel);
             msgHeader.setTerminalPhone(tel);
             //读取消息流水号
             int flowId = escape.readUnsignedShort();
             logger.info("消息流水号：{}", flowId);
+            msgHeader.setFlowId(flowId);
             // 5. 消息包封装项
             // 有子包信息
             if (msgHeader.isHasSubPackage()) {
@@ -102,29 +118,39 @@ public class TcpHandler extends ChannelInboundHandlerAdapter {
                 // byte[2-3] 包序号(word(16)) 从 1 开始
                 msgHeader.setSubPackageSeq(escape.readUnsignedShort());
             }
-            //校验码
-            System.out.println("写指针： " + escape.writerIndex());
-//            byte pkgCheckSum = escape.readByte();
-//            escape.writerIndex(escape.writerIndex() - 1);//排除校验码
-//            byte calCheckSum = XorSumBytes(escape);
-//            if (pkgCheckSum != calCheckSum) {
-//                logger.warn("校验码错误,pkgCheckSum:{},calCheckSum:{}", pkgCheckSum, calCheckSum);
-//                ReferenceCountUtil.safeRelease(escape);
-//                return;
-//            }
 
             logger.info("得到消息头：{}", msgHeader);
-//            //解码 字节数据转换为针对于808消息结构的实体类
+            packageData.setMsgHeader(msgHeader);
+            //消息体解析
+            System.out.println("读指针： " + escape.readerIndex());
+            System.out.println("写指针： " + escape.writerIndex());
+            ByteBuf byteBuf = escape.readBytes(msgHeader.getMsgBodyLength());
+            packageData.setPayload(byteBuf);
+            System.out.println("消息体读指针： " + byteBuf.readerIndex());
+            System.out.println("消息体写指针： " + byteBuf.writerIndex());
+            byte[] bytes = new byte[msgHeader.getMsgBodyLength()];
+            byteBuf.readBytes(bytes);
+            System.out.println("消息体:"+new String(bytes,"GBK"));
 
-//            PackageData pkg = this.decoder.bytes2PackageData(bs);
-//            // 引用channel,以便回送数据给硬件
-//            pkg.setChannel(ctx.channel());
-//            this.processPackageData(pkg);
+            packageData.setChannel(ctx.channel());
+            this.processPackageData(packageData);
         } catch (Exception e) {
             logger.error("", e);
         } finally {
             //释放
             ReferenceCountUtil.release(msg);
+        }
+    }
+
+    /**
+     * 处理数据逻辑
+     * @param packageData
+     */
+    private void processPackageData(PackageData packageData) {
+        switch (packageData.getMsgHeader().getMsgId()){
+            case JT808Const.TERNIMAL_MSG_LOCATION:
+
+                break;
         }
     }
 
@@ -164,4 +190,7 @@ public class TcpHandler extends ChannelInboundHandlerAdapter {
         return src;
     }
 
+    public static void main(String[] args) throws UnsupportedEncodingException {
+        System.out.println(Arrays.toString("123".getBytes("GBK")));
+    }
 }
