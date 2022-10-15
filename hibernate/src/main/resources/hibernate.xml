@@ -1,0 +1,41 @@
+<!DOCTYPE hibernate-configuration PUBLIC
+  "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+  "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+<!--    核心配置-->
+    <session-factory>
+<!--        数据源-->
+        <property name="connection.username">root</property>
+        <property name="connection.password">root</property>
+        <property name="connection.driver_class">com.mysql.jdbc.Driver</property>
+        <property name="connection.url">jdbc:mysql:// :3308/test</property>
+
+<!--        连接池c3p0-->
+        <property name="hibernate.c3p0.acquire_increment">10</property>
+        <property name="hibernate.c3p0.idle_test_period">10000</property>
+        <property name="hibernate.c3p0.timeout">5000</property>
+        <property name="hibernate.c3p0.max_size">30</property>
+        <property name="hibernate.c3p0.min_size">5</property>
+        <property name="hibernate.c3p0.max_statements">10</property>
+
+<!--        数据库方言(根据不同数据库生成对应的sql语言)-->
+        <property name="dialect">org.hibernate.dialect.MySQL5Dialect</property>
+
+<!--        sql log-->
+        <property name="show_sql">true</property>
+<!--        格式化sql-->
+        <property name="format_sql">true</property>
+
+<!--        自动生成数据表-->
+        <property name="hibernate.hbm2ddl.auto">update</property>
+
+<!--        注册实体关系映射文件-->
+        <mapping resource="com\hibernate\entity\People.hbm.xml"></mapping>
+        <mapping resource="com\hibernate\entity\Customer.hbm.xml"></mapping>
+        <mapping resource="com\hibernate\entity\Order.hbm.xml"></mapping>
+        <mapping resource="com\hibernate\entity\Course.hbm.xml"></mapping>
+        <mapping resource="com\hibernate\entity\Account.hbm.xml"></mapping>
+
+    </session-factory>
+</hibernate-configuration>

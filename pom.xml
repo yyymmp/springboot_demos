@@ -13,6 +13,7 @@
         <module>test</module>
         <module>rocketmq</module>
         <module>netty_jt808</module>
+        <module>hibernate</module>
     </modules>
 
     <build>
