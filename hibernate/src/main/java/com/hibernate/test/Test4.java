@@ -24,6 +24,8 @@ public class Test4 {
         SessionFactory sessionFactory = configuration.buildSessionFactory();
         Session session = sessionFactory.openSession();
         Customer customer = session.get(Customer.class, 1);
+        //访问才会去查询辅表的sql  查询Customer 延迟查询getOrders 只有方位Orders才会查询从表数据
+        System.out.println(customer.getOrders());
         System.out.println(customer);
         session.close();
     }
