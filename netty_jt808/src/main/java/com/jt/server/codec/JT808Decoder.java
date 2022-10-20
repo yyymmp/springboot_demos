@@ -1,12 +1,19 @@
 package com.jt.server.codec;
 
 
+import com.jt.server.consts.JT808Const;
 import com.jt.server.message.PackageData;
+import com.jt.server.message.req.TerminalAuthenticationMsg;
+import com.jt.server.message.req.TerminalRegisterMsg;
+import com.jt.server.message.req.TerminalRegisterMsg.TerminalRegInfo;
+import com.jt.server.uitls.BCD8421Operater;
+import com.jt.server.uitls.BitOperator;
 import io.netty.buffer.*;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.util.ReferenceCountUtil;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,6 +23,8 @@ import org.slf4j.LoggerFactory;
 public class JT808Decoder extends ByteToMessageDecoder {
     Logger log = LoggerFactory.getLogger(ByteToMessageDecoder.class);
     private static final ByteBufAllocator ALLOC = PooledByteBufAllocator.DEFAULT;
+    private final BitOperator bitOperator = new BitOperator();
+    private final BCD8421Operater bcd8421Operater = new BCD8421Operater();
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
@@ -152,4 +161,141 @@ public class JT808Decoder extends ByteToMessageDecoder {
         return byteBuf.slice(index, length - 1);
     }
 
+    public TerminalRegisterMsg toTerminalRegisterMsg(PackageData packageData) {
+        TerminalRegisterMsg ret = new TerminalRegisterMsg(packageData);
+        TerminalRegInfo body = new TerminalRegInfo();
+
+        //省id 两字节
+        int provinceId = packageData.getPayload().readUnsignedShort();
+        body.setProvinceId(provinceId);
+        //市id 两字节
+        int cityId = packageData.getPayload().readUnsignedShort();
+        body.setCityId(cityId);
+        //制造商id 5字节
+        byte[] manufacturerIdBytes = new byte[5];
+        packageData.getPayload().readBytes(manufacturerIdBytes);
+        String manufacturerIdStr = new String(manufacturerIdBytes);
+        body.setManufacturerId(manufacturerIdStr);
+        //终端型号 20字节
+        byte[] terminalTypeByte = new byte[20];
+        packageData.getPayload().readBytes(terminalTypeByte);
+        String terminalTypeByteStr = new String(terminalTypeByte);
+        body.setTerminalType(terminalTypeByteStr);
+        //终端id 7个字节
+        byte[] terminalIdBytes = new byte[7];
+        packageData.getPayload().readBytes(terminalIdBytes);
+        String terminalIdStr = new String(terminalIdBytes);
+        body.setTerminalId(terminalIdStr);
+        //车身颜色 一个字节
+        short licensePlateColor = packageData.getPayload().readUnsignedByte();
+        body.setLicensePlateColor(licensePlateColor);
+        //车辆标识(车牌号) 剩余字节
+        byte[] licensePlateBytes = new byte[ret.getPayload().readableBytes()];
+        packageData.getPayload().readBytes(licensePlateBytes);
+        String licensePlateBytesStr = new String(licensePlateBytes);
+        body.setLicensePlate(licensePlateBytesStr);
+
+        ret.setTerminalRegInfo(body);
+        log.info("解得注册消息体:{}",body);
+        return ret;
+        //byte[] data = new byte[ret.getPayload().readableBytes()];
+        //packageData.getPayload().readBytes(data);
+        //
+        //TerminalRegInfo body = new TerminalRegInfo();
+        //
+        //// 1. byte[0-1] 省域ID(WORD)
+        //// 设备安装车辆所在的省域，省域ID采用GB/T2260中规定的行政区划代码6位中前两位
+        //// 0保留，由平台取默认值
+        //body.setProvinceId(this.parseIntFromBytes(data, 0, 2));
+        //
+        //// 2. byte[2-3] 设备安装车辆所在的市域或县域,市县域ID采用GB/T2260中规定的行 政区划代码6位中后四位
+        //// 0保留，由平台取默认值
+        //body.setCityId(this.parseIntFromBytes(data, 2, 2));
+        //
+        //// 3. byte[4-8] 制造商ID(BYTE[5]) 5 个字节，终端制造商编码
+        //// byte[] tmp = new byte[5];
+        //body.setManufacturerId(this.parseStringFromBytes(data, 4, 5));
+        //
+        //// 4. byte[9-16] 终端型号(BYTE[8]) 八个字节， 此终端型号 由制造商自行定义 位数不足八位的，补空格。
+        //body.setTerminalType(this.parseStringFromBytes(data, 9, 8));
+        //
+        //// 5. byte[17-23] 终端ID(BYTE[7]) 七个字节， 由大写字母 和数字组成， 此终端 ID由制造 商自行定义
+        //body.setTerminalId(this.parseStringFromBytes(data, 17, 7));
+        //
+        //// 6. byte[24] 车牌颜色(BYTE) 车牌颜 色按照JT/T415-2006 中5.4.12 的规定
+        //body.setLicensePlateColor(this.parseIntFromBytes(data, 24, 1));
+        //
+        //// 7. byte[25-x] 车牌(STRING) 公安交 通管理部门颁 发的机动车号牌
+        //body.setLicensePlate(this.parseStringFromBytes(data, 25, data.length - 25));
+        //
+        //ret.setTerminalRegInfo(body);
+        //return ret;
+    }
+
+
+    public TerminalAuthenticationMsg toTerminalAuthenticationMsg(PackageData packageData) throws UnsupportedEncodingException {
+        return new TerminalAuthenticationMsg(packageData);
+    }
+
+
+    private int parseIntFromBytes(byte[] data, int startIndex, int length) {
+        return this.parseIntFromBytes(data, startIndex, length, 0);
+    }
+
+    private int parseIntFromBytes(byte[] data, int startIndex, int length, int defaultVal) {
+        try {
+            // 字节数大于4,从起始索引开始向后处理4个字节,其余超出部分丢弃
+            final int len = length > 4 ? 4 : length;
+            byte[] tmp = new byte[len];
+            System.arraycopy(data, startIndex, tmp, 0, len);
+            return bitOperator.byteToInteger(tmp);
+        } catch (Exception e) {
+            log.error("解析整数出错:{}", e.getMessage());
+            e.printStackTrace();
+            return defaultVal;
+        }
+    }
+
+    protected String parseStringFromBytes(byte[] data, int startIndex, int lenth) {
+        return this.parseStringFromBytes(data, startIndex, lenth, null);
+    }
+
+    private String parseStringFromBytes(byte[] data, int startIndex, int lenth, String defaultVal) {
+        try {
+            byte[] tmp = new byte[lenth];
+            System.arraycopy(data, startIndex, tmp, 0, lenth);
+            return new String(tmp,"GBK");
+        } catch (Exception e) {
+            log.error("解析字符串出错:{}", e.getMessage());
+            e.printStackTrace();
+            return defaultVal;
+        }
+    }
+
+    /**
+     * 转义待发数据  0x7e
+     * @param raw
+     * @return
+     */
+    public static ByteBuf escape(ByteBuf raw) {
+        int len = raw.readableBytes();
+        ByteBuf buf = ByteBufAllocator.DEFAULT.directBuffer(len + 12);
+        buf.writeByte(JT808Const.PKG_DELIMITER);
+        while (len > 0) {
+            byte b = raw.readByte();
+            if (b == 0x7e) {
+                buf.writeByte(0x7d);
+                buf.writeByte(0x02);
+            } else if (b == 0x7d) {
+                buf.writeByte(0x7d);
+                buf.writeByte(0x01);
+            } else {
+                buf.writeByte(b);
+            }
+            len--;
+        }
+        ReferenceCountUtil.safeRelease(raw);
+        buf.writeByte(JT808Const.PKG_DELIMITER);
+        return buf;
+    }
 }

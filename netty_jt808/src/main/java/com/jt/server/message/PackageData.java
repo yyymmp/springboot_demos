@@ -3,7 +3,6 @@ package com.jt.server.message;
 import com.alibaba.fastjson.annotation.JSONField;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
-
 import java.util.Arrays;
 
 /**

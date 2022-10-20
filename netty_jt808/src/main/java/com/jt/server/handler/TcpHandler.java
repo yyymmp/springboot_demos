@@ -1,9 +1,16 @@
 package com.jt.server.handler;
 
+import static com.jt.server.consts.JT808Const.TERNIMAL_MSG_AUTH;
+import static com.jt.server.consts.JT808Const.TERNIMAL_MSG_LOCATION;
+import static com.jt.server.consts.JT808Const.TERNIMAL_MSG_REGISTER;
+
 import com.jt.server.codec.JT808Decoder;
 import com.jt.server.consts.JT808Const;
 import com.jt.server.message.MsgHeader;
 import com.jt.server.message.PackageData;
+import com.jt.server.message.req.TerminalAuthenticationMsg;
+import com.jt.server.message.req.TerminalRegisterMsg;
+import com.jt.server.uitls.BitOperator;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
@@ -19,6 +26,9 @@ import java.util.Arrays;
 public class TcpHandler extends ChannelInboundHandlerAdapter {
     Logger logger = LoggerFactory.getLogger(ChannelInboundHandlerAdapter.class);
 
+    private final JT808Decoder decoder = new JT808Decoder();
+
+    private final TerminalMsgProcessService terminalMsgProcessService =  new TerminalMsgProcessService();
     public static byte bcc(ByteBuf byteBuf, int tailOffset) {
         byte cs = 0;
         int readerIndex = byteBuf.readerIndex();
@@ -82,12 +92,10 @@ public class TcpHandler extends ChannelInboundHandlerAdapter {
             String tel;
             if (version == 0) {
                 logger.info("2013版本");
-                //读取手机号 六位
-                int num_part1 = escape.readUnsignedShort();
-                int num_part2 = escape.readUnsignedShort();
-                int num_part3 = escape.readUnsignedShort();
-                //将三部分转成hex拼接即可得到手机号
-                tel = Integer.toHexString(num_part1) + Integer.toHexString(num_part2) + Integer.toHexString(num_part3);
+                byte[] telBytes = new byte[6];
+                //手机号直接由十六进制字符串保存 所以此处不能根据字节数组转成字符串 直接转成hex字符串即可
+                escape.readBytes(telBytes);
+                tel = BitOperator.bytesToHex(telBytes);
                 logger.info("手机号：{}", tel);
             } else {
                 logger.info("2019版本");
@@ -95,12 +103,9 @@ public class TcpHandler extends ChannelInboundHandlerAdapter {
                 byte b = escape.readByte();
                 System.out.println("协议版本号: "+b);
                 //读取手机号 [5-15)
-                int num_part1 = escape.readUnsignedShort();
-                int num_part2 = escape.readUnsignedShort();
-                int num_part3 = escape.readUnsignedShort();
-                int num_part4 = escape.readUnsignedShort();
-                int num_part5 = escape.readUnsignedShort();
-                tel = Integer.toHexString(num_part1) + Integer.toHexString(num_part2) + Integer.toHexString(num_part3) + Integer.toHexString(num_part4) +Integer.toHexString(num_part5);
+                byte[] telBytes = new byte[10];
+                escape.readBytes(telBytes);
+                tel = BitOperator.bytesToHex(telBytes);
                 logger.info("手机号：{}", tel);
             }
             msgHeader.setTerminalPhone(tel);
@@ -128,9 +133,9 @@ public class TcpHandler extends ChannelInboundHandlerAdapter {
             packageData.setPayload(byteBuf);
             System.out.println("消息体读指针： " + byteBuf.readerIndex());
             System.out.println("消息体写指针： " + byteBuf.writerIndex());
-            byte[] bytes = new byte[msgHeader.getMsgBodyLength()];
-            byteBuf.readBytes(bytes);
-            System.out.println("消息体:"+new String(bytes,"GBK"));
+            //byte[] bytes = new byte[msgHeader.getMsgBodyLength()];
+            //byteBuf.readBytes(bytes);
+            //System.out.println("消息体:"+new String(bytes,"GBK"));
 
             packageData.setChannel(ctx.channel());
             this.processPackageData(packageData);
@@ -146,11 +151,26 @@ public class TcpHandler extends ChannelInboundHandlerAdapter {
      * 处理数据逻辑
      * @param packageData
      */
-    private void processPackageData(PackageData packageData) {
+    private void processPackageData(PackageData packageData) throws Exception {
+        final MsgHeader header = packageData.getMsgHeader();
         switch (packageData.getMsgHeader().getMsgId()){
-            case JT808Const.TERNIMAL_MSG_LOCATION:
+            //注册消息 256
+            case TERNIMAL_MSG_REGISTER:
+
+                TerminalRegisterMsg terminalRegisterMsg = decoder.toTerminalRegisterMsg(packageData);
+                terminalMsgProcessService.processRegisterMsg(terminalRegisterMsg);
+                break;
+            //鉴权258
+            case TERNIMAL_MSG_AUTH:
+                logger.info(">>>>>[终端鉴权],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
+                TerminalAuthenticationMsg terminalAuthenticationMsg = decoder.toTerminalAuthenticationMsg(packageData);
+                terminalMsgProcessService.processAuthMsg(terminalAuthenticationMsg);
+                break;
+            case TERNIMAL_MSG_LOCATION:
 
                 break;
+            default:
+
         }
     }
 
