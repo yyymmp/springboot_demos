@@ -50,10 +50,10 @@ public class TerminalMsgProcessService {
         respMsgBody.setReplyCode(TerminalRegisterMsgRespBody.success);
         respMsgBody.setReplyFlowId(msg.getMsgHeader().getFlowId());
         //todo 授权码
-        respMsgBody.setReplyToken("123456");
+        respMsgBody.setReplyToken("789654");
 
         ByteBuf respBody = ByteBufAllocator.DEFAULT.buffer();
-        respBody.writeShort(msg.getMsgHeader().getFlowId()).writeShort(TerminalRegisterMsgRespBody.success).writeBytes("123456".getBytes("GBK"));
+        respBody.writeShort(msg.getMsgHeader().getFlowId()).writeShort(TerminalRegisterMsgRespBody.success).writeBytes("789654".getBytes("GBK"));
 
         ByteBuf byteBuf = genCommonResp(msg, SERVER_RESP_REGISTER, respBody);
 
@@ -102,7 +102,7 @@ public class TerminalMsgProcessService {
         sessionManager.put(session.getId(), session);
 
         ByteBuf respBody = ByteBufAllocator.DEFAULT.buffer();
-        respBody.writeShort(msg.getMsgHeader().getFlowId()).writeShort(SERVER_RESP_COMMON).writeByte(0);
+        respBody.writeShort(msg.getMsgHeader().getFlowId()).writeShort(msg.getMsgHeader().getMsgId()).writeByte(0);
 
         ByteBuf byteBuf = genCommonResp(msg, SERVER_RESP_COMMON, respBody);
 

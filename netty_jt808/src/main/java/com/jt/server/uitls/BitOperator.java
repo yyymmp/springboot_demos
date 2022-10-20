@@ -44,8 +44,8 @@ public class BitOperator {
     }
 
     public static void main(String[] args) {
-        int a = 11;
-        byte[] bytes = new BitOperator().integerTo2Bytes(a);
+        int a = 0;
+        byte[] bytes = new BitOperator().integerTo1Bytes(a);
 
     }
 
