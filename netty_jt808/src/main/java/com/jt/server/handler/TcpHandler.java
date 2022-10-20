@@ -8,6 +8,7 @@ import com.jt.server.codec.JT808Decoder;
 import com.jt.server.consts.JT808Const;
 import com.jt.server.message.MsgHeader;
 import com.jt.server.message.PackageData;
+import com.jt.server.message.req.LocationInfoUploadMsg;
 import com.jt.server.message.req.TerminalAuthenticationMsg;
 import com.jt.server.message.req.TerminalRegisterMsg;
 import com.jt.server.uitls.BitOperator;
@@ -156,18 +157,24 @@ public class TcpHandler extends ChannelInboundHandlerAdapter {
         switch (packageData.getMsgHeader().getMsgId()){
             //注册消息 256
             case TERNIMAL_MSG_REGISTER:
-
+                logger.info(">>>>>[终端注册],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
                 TerminalRegisterMsg terminalRegisterMsg = decoder.toTerminalRegisterMsg(packageData);
                 terminalMsgProcessService.processRegisterMsg(terminalRegisterMsg);
+                logger.info("<<<<<[终端注册],phone={},flowOd={}", header.getTerminalPhone(), header.getFlowId());
                 break;
             //鉴权258
             case TERNIMAL_MSG_AUTH:
                 logger.info(">>>>>[终端鉴权],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
                 TerminalAuthenticationMsg terminalAuthenticationMsg = decoder.toTerminalAuthenticationMsg(packageData);
                 terminalMsgProcessService.processAuthMsg(terminalAuthenticationMsg);
+                logger.info("<<<<<[终端鉴权],phone={},flowOd={}", header.getTerminalPhone(), header.getFlowId());
                 break;
+            //位置512
             case TERNIMAL_MSG_LOCATION:
-
+                logger.info(">>>>>[位置信息],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
+                LocationInfoUploadMsg locationInfoUploadMsg = decoder.toLocationInfoUploadMsg(packageData);
+                terminalMsgProcessService.processlocationInfoUploadMsg(locationInfoUploadMsg);
+                logger.info("<<<<<[位置信息],phone={},flowOd={}", header.getTerminalPhone(), header.getFlowId());
                 break;
             default:
 

@@ -8,7 +8,7 @@ public class BCD8421Operater {
 	 * @param bytes
 	 * @return 十进制字符串
 	 */
-	public String bcd2String(byte[] bytes) {
+	public static String bcd2String(byte[] bytes) {
 		StringBuilder temp = new StringBuilder(bytes.length * 2);
 		for (int i = 0; i < bytes.length; i++) {
 			// 高四位

@@ -7,6 +7,7 @@ import com.alibaba.fastjson.JSON;
 import com.jt.server.codec.JT808Decoder;
 import com.jt.server.codec.JT808Encoder;
 import com.jt.server.message.PackageData;
+import com.jt.server.message.req.LocationInfoUploadMsg;
 import com.jt.server.message.req.TerminalAuthenticationMsg;
 import com.jt.server.message.req.TerminalRegisterMsg;
 import com.jt.server.message.resp.ServerCommonRespMsgBody;
@@ -51,7 +52,6 @@ public class TerminalMsgProcessService {
         //todo 授权码
         respMsgBody.setReplyToken("123456");
 
-        ByteBuf respHeader = ByteBufAllocator.DEFAULT.buffer();
         ByteBuf respBody = ByteBufAllocator.DEFAULT.buffer();
         respBody.writeShort(msg.getMsgHeader().getFlowId()).writeShort(TerminalRegisterMsgRespBody.success).writeBytes("123456".getBytes("GBK"));
 
@@ -108,7 +108,7 @@ public class TerminalMsgProcessService {
 
         ChannelFuture future = msg.getChannel().writeAndFlush(byteBuf).sync();
         if (!future.isSuccess()) {
-            log.error("注册消息回应 发送数据出错:{}", future.cause());
+            log.error("鉴权消息回应 发送数据出错:{}", future.cause());
         }
         respBody.release();
     }
@@ -145,5 +145,17 @@ public class TerminalMsgProcessService {
 
         //添加标识并转义
         return JT808Decoder.escape(respHeader);
+    }
+
+    public void processlocationInfoUploadMsg(LocationInfoUploadMsg msg) throws InterruptedException {
+        log.info("位置上报信息:{}", msg);
+        ByteBuf respBody = ByteBufAllocator.DEFAULT.buffer();
+        respBody.writeShort(msg.getMsgHeader().getFlowId()).writeShort(SERVER_RESP_COMMON).writeByte(0);
+        ByteBuf byteBuf = genCommonResp(msg, SERVER_RESP_COMMON, respBody);
+        ChannelFuture future = msg.getChannel().writeAndFlush(byteBuf).sync();
+        if (!future.isSuccess()) {
+            log.error("位置消息回应 发送数据出错:{}", future.cause());
+        }
+        respBody.release();
     }
 }

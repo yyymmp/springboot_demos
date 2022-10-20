@@ -3,6 +3,7 @@ package com.jt.server.codec;
 
 import com.jt.server.consts.JT808Const;
 import com.jt.server.message.PackageData;
+import com.jt.server.message.req.LocationInfoUploadMsg;
 import com.jt.server.message.req.TerminalAuthenticationMsg;
 import com.jt.server.message.req.TerminalRegisterMsg;
 import com.jt.server.message.req.TerminalRegisterMsg.TerminalRegInfo;
@@ -14,7 +15,11 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.util.ReferenceCountUtil;
 
 import java.io.UnsupportedEncodingException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -298,4 +303,45 @@ public class JT808Decoder extends ByteToMessageDecoder {
         buf.writeByte(JT808Const.PKG_DELIMITER);
         return buf;
     }
+
+    public LocationInfoUploadMsg toLocationInfoUploadMsg(PackageData packageData) {
+        LocationInfoUploadMsg locationInfoUploadMsg = new LocationInfoUploadMsg(packageData);
+        ByteBuf payload = packageData.getPayload();
+        //报警标志 4字节
+        int warningFlagField = payload.readInt();
+        locationInfoUploadMsg.setWarningFlagField(warningFlagField);
+        //状态 4字节
+        int statusField = payload.readInt();
+        locationInfoUploadMsg.setStatusField(statusField);
+        //纬度 4字节
+        float latitude = payload.readInt() *1.0F/100_0000;
+        locationInfoUploadMsg.setLatitude(latitude);
+        //经度 4字节
+        float longitude = payload.readInt() *1.0F/100_0000;
+        locationInfoUploadMsg.setLongitude(longitude);
+        //高程 2字节
+        int elevation = payload.readUnsignedShort();
+        locationInfoUploadMsg.setElevation(elevation);
+        //速度 2字节
+        int speed = payload.readUnsignedShort();
+        locationInfoUploadMsg.setSpeed(speed);
+        //方向 2字节
+        int direction = payload.readUnsignedShort();
+        locationInfoUploadMsg.setDirection(direction);
+        //时间 6字节 这是bcd码
+        byte[] bs = new byte[6];
+        payload.readBytes(bs);
+        String dateStr = BCD8421Operater.bcd2String(bs);
+        Date date = null;
+        try {
+            date = new SimpleDateFormat("yyMMddHHmmss").parse(dateStr);
+        } catch (ParseException e) {
+            log.error("",e);
+        }
+        locationInfoUploadMsg.setTime(date);
+
+        return locationInfoUploadMsg;
+    }
+
+
 }
