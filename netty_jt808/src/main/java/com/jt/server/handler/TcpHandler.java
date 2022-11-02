@@ -1,11 +1,6 @@
 package com.jt.server.handler;
 
-import static com.jt.server.consts.JT808Const.TERNIMAL_MSG_AUTH;
-import static com.jt.server.consts.JT808Const.TERNIMAL_MSG_LOCATION;
-import static com.jt.server.consts.JT808Const.TERNIMAL_MSG_REGISTER;
-
 import com.jt.server.codec.JT808Decoder;
-import com.jt.server.consts.JT808Const;
 import com.jt.server.message.MsgHeader;
 import com.jt.server.message.PackageData;
 import com.jt.server.message.req.LocationInfoUploadMsg;
@@ -17,12 +12,13 @@ import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
-import java.io.UnsupportedEncodingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+
+import static com.jt.server.consts.JT808Const.*;
 
 public class TcpHandler extends ChannelInboundHandlerAdapter {
     Logger logger = LoggerFactory.getLogger(ChannelInboundHandlerAdapter.class);
@@ -154,7 +150,7 @@ public class TcpHandler extends ChannelInboundHandlerAdapter {
      */
     private void processPackageData(PackageData packageData) throws Exception {
         final MsgHeader header = packageData.getMsgHeader();
-        switch (packageData.getMsgHeader().getMsgId()){
+        switch (packageData.getMsgHeader().getMsgId()) {
             //注册消息 256
             case TERNIMAL_MSG_REGISTER:
                 logger.info(">>>>>[终端注册],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
@@ -173,10 +169,22 @@ public class TcpHandler extends ChannelInboundHandlerAdapter {
             case TERNIMAL_MSG_LOCATION:
                 logger.info(">>>>>[位置信息],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
                 LocationInfoUploadMsg locationInfoUploadMsg = decoder.toLocationInfoUploadMsg(packageData);
-                terminalMsgProcessService.processlocationInfoUploadMsg(locationInfoUploadMsg);
+                terminalMsgProcessService.processLocationInfoUploadMsg(locationInfoUploadMsg);
                 logger.info("<<<<<[位置信息],phone={},flowOd={}", header.getTerminalPhone(), header.getFlowId());
                 break;
+            //心跳消息2
+            case TERNIMAL_MSG_HEARTBEAT:
+                logger.info(">>>>>[终端心跳],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
+                try {
+                    terminalMsgProcessService.processTerminalHeartBeatMsg(packageData);
+                    logger.info("<<<<<[终端心跳],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
+                } catch (Exception e) {
+                    logger.error("<<<<<[终端心跳]处理错误,phone={},flowid={},err={}", header.getTerminalPhone(), header.getFlowId(),
+                            e.getMessage());
+                    e.printStackTrace();
+                }
             default:
+                break;
 
         }
     }

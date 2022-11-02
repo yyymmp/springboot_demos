@@ -9,13 +9,6 @@ import java.util.Arrays;
 public class Main {
 
     public static void main(String[] args) {
-        HttpURLConnection httpURLConnection = null;
-        try (
-                httpURLConnection.getInputStream()
-        ) {
 
-        } catch (IOException ioException) {
-            ioException.printStackTrace();
-        }
     }
 }

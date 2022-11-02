@@ -3,13 +3,15 @@ package com.jt.server.message;
 import com.alibaba.fastjson.annotation.JSONField;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
  * 数据包
  * 消息头 + 消息体 + 校验码
  */
-public class PackageData {
+public class PackageData implements Serializable {
     /**
      * 16byte 消息头
      */

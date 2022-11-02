@@ -34,6 +34,10 @@
             <version>1.2.69_noneautotype</version>
             <scope>compile</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-client</artifactId>
+            <version>4.9.4</version>
+        </dependency>
     </dependencies>
 </project>

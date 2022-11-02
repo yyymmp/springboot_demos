@@ -6,12 +6,14 @@ import static com.jt.server.consts.JT808Const.SERVER_RESP_REGISTER;
 import com.alibaba.fastjson.JSON;
 import com.jt.server.codec.JT808Decoder;
 import com.jt.server.codec.JT808Encoder;
+import com.jt.server.message.MsgHeader;
 import com.jt.server.message.PackageData;
 import com.jt.server.message.req.LocationInfoUploadMsg;
 import com.jt.server.message.req.TerminalAuthenticationMsg;
 import com.jt.server.message.req.TerminalRegisterMsg;
 import com.jt.server.message.resp.ServerCommonRespMsgBody;
 import com.jt.server.message.resp.TerminalRegisterMsgRespBody;
+import com.jt.server.mq.LocationProduct;
 import com.jt.server.session.Session;
 import com.jt.server.session.SessionManager;
 import com.jt.server.uitls.BitOperator;
@@ -147,14 +149,29 @@ public class TerminalMsgProcessService {
         return JT808Decoder.escape(respHeader);
     }
 
-    public void processlocationInfoUploadMsg(LocationInfoUploadMsg msg) throws InterruptedException {
+    public void processLocationInfoUploadMsg(LocationInfoUploadMsg msg) throws InterruptedException {
         log.info("位置上报信息:{}", msg);
+        //发送至mq
+        LocationProduct.send(msg);
         ByteBuf respBody = ByteBufAllocator.DEFAULT.buffer();
-        respBody.writeShort(msg.getMsgHeader().getFlowId()).writeShort(SERVER_RESP_COMMON).writeByte(0);
+        respBody.writeShort(msg.getMsgHeader().getFlowId()).writeShort(msg.getMsgHeader().getMsgId()).writeByte(0);
         ByteBuf byteBuf = genCommonResp(msg, SERVER_RESP_COMMON, respBody);
         ChannelFuture future = msg.getChannel().writeAndFlush(byteBuf).sync();
         if (!future.isSuccess()) {
             log.error("位置消息回应 发送数据出错:{}", future.cause());
+        }
+        respBody.release();
+    }
+
+
+    public void processTerminalHeartBeatMsg(PackageData msg) throws InterruptedException {
+        log.debug("心跳信息:{}", JSON.toJSONString(msg, true));
+        ByteBuf respBody = ByteBufAllocator.DEFAULT.buffer();
+        respBody.writeShort(msg.getMsgHeader().getFlowId()).writeShort(msg.getMsgHeader().getMsgId()).writeByte(0);
+        ByteBuf byteBuf = genCommonResp(msg, SERVER_RESP_COMMON, respBody);
+        ChannelFuture future = msg.getChannel().writeAndFlush(byteBuf).sync();
+        if (!future.isSuccess()) {
+            log.error("心跳消息回应 发送数据出错:{}", future.cause());
         }
         respBody.release();
     }
