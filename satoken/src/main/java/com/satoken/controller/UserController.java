@@ -1,5 +1,6 @@
 package com.satoken.controller;
 
+import cn.dev33.satoken.session.SaSession;
 import cn.dev33.satoken.stp.StpUtil;
 import java.lang.reflect.Array;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,5 +45,18 @@ public class UserController {
         StpUtil.checkRole("super-admin");
         // 获取当前会话的token值
         return StpUtil.getPermissionList().toString();
+    }
+
+    @RequestMapping("logout")
+    public void logout() {
+        SaSession session = StpUtil.getSession();
+        //强制注销
+        StpUtil.logout(10001);
+    }
+
+    @RequestMapping("kickout")
+    public void kickout() {
+        //踢人下线
+        StpUtil.kickout(10001);
     }
 }
