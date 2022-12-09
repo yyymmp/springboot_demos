@@ -19,6 +19,7 @@
         <module>netty_jt808</module>
         <module>hibernate</module>
         <module>satoken</module>
+        <module>sso-server</module>
     </modules>
 
     <build>
