@@ -20,8 +20,14 @@
         <module>hibernate</module>
         <module>satoken</module>
         <module>sso-server</module>
+        <module>okhttp</module>
     </modules>
-
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+    </dependencies>
     <build>
 
             <plugins>
